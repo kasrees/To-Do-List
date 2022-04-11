@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using To_Do_List_Backend.Infrastructure;
-using To_Do_List_Backend.Repositories;
-using To_Do_List_Backend.Services;
+using To_Do_List_Backend.Infrastructure.Repositories;
 using To_Do_List_Backend.UnitOfWork;
 
 var builder = WebApplication.CreateBuilder( args );
@@ -28,10 +27,7 @@ builder.Services.AddSwaggerGen( c =>
     c.SwaggerDoc( "v1", new() { Title = "TodoApi", Version = "v1" } );
 } );
 
-//Тут добавить сервис IToDoService в DI
-//builder.Services.AddScoped<ITodoRepository, TodoRowSqlRepository>( x => new TodoRowSqlRepository( builder.Configuration.GetConnectionString( "DefaultConnection" ) ) );
 builder.Services.AddScoped<ITodoRepository, TodoRepository>();
-builder.Services.AddScoped<ITodoService, TodoService>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 

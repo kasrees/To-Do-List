@@ -1,9 +1,9 @@
 ﻿using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using To_Do_List_Backend.Application.Dto;
 using To_Do_List_Backend.Domain;
-using To_Do_List_Backend.Dto;
-using To_Do_List_Backend.Services;
+using To_Do_List_Backend.Infrastructure.Repositories;
 using To_Do_List_Backend.UnitOfWork;
 
 namespace To_Do_List_Backend.Controllers
@@ -12,12 +12,12 @@ namespace To_Do_List_Backend.Controllers
     [Route( "rest/[controller]" )]
     public class TodoController : ControllerBase
     {
-        private readonly ITodoService _todoService;
+        private readonly ITodoRepository _todoRepository;
         private readonly IUnitOfWork _unitOfWork;
 
-        public TodoController( ITodoService todoService, IUnitOfWork unitOfWork )
+        public TodoController( ITodoRepository todoRepository, IUnitOfWork unitOfWork )
         {
-            _todoService = todoService;
+            _todoRepository = todoRepository;
             _unitOfWork = unitOfWork;
         }
 
@@ -25,7 +25,7 @@ namespace To_Do_List_Backend.Controllers
         [Route( "get-all" )]
         public ActionResult<List<TodoDto>> GetAll()
         {
-            List<Todo> todos = _todoService.GetTodos();
+            List<Todo> todos = _todoRepository.GetTodos();
             if ( todos.Count == 0 )
             {
                 return NoContent();
@@ -38,7 +38,7 @@ namespace To_Do_List_Backend.Controllers
         [Route( "{todoId}" )]
         public ActionResult<TodoDto> GetTodo( int todoId )
         {
-            Todo? todo = _todoService.GetTodo( todoId );
+            Todo? todo = _todoRepository.Get( todoId );
             if ( todo == null )
             {
                 return NotFound();
@@ -50,7 +50,8 @@ namespace To_Do_List_Backend.Controllers
         [Route( "create" )]
         public ActionResult<TodoDto> CreateTodo( [FromBody] TodoDto todoDto )
         {
-            Todo? createdTodo = _todoService.CreateTodo( todoDto );
+            var createdTodo = _todoRepository.Create( todoDto.ToTodo() );
+
             if ( createdTodo == null )
             {
                 return BadRequest();
@@ -65,22 +66,32 @@ namespace To_Do_List_Backend.Controllers
         [Route( "{todoId}/complete" )]
         public ActionResult<TodoDto> CompleteTodo( int todoId )
         {
-            Todo? comletedTodo = _todoService.CompleteTodo( todoId );
+            Todo? comletedTodo = _todoRepository.Get( todoId );
             if ( comletedTodo == null )
             {
                 return NotFound();
             }
 
+            comletedTodo.IsDone = true;
+            _todoRepository.Update( comletedTodo );
+
             _unitOfWork.Commit();
 
-            return Ok( comletedTodo );
+            return Ok( comletedTodo.ToTodoDto() );
         }
 
         [HttpDelete]
         [Route( "{todoId}/delete" )]
         public IActionResult DeleteTodo( int todoId )
         {
-            _todoService.DeleteTodo( todoId );
+            var entity = _todoRepository.Get( todoId );
+
+            if(entity == null)
+            {
+                return BadRequest();
+            }
+
+            _todoRepository.Delete( entity );
 
             _unitOfWork.Commit();
 
